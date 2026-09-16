@@ -19,6 +19,11 @@ import {
   MOCK_SEARCH_LOGS,
   MOCK_ALL_USERS
 } from '../data/mockData';
+import { 
+  fetchQuestionsFromApi, 
+  syncQuestionToApi, 
+  syncUserProfileToApi 
+} from '../api/client';
 
 interface AppContextType {
   userMode: UserMode;
@@ -176,11 +181,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchLogs] = useState<SearchQueryLog[]>(MOCK_SEARCH_LOGS);
   const [activeShareModalQuestion, setActiveShareModalQuestion] = useState<Question | null>(null);
 
-  // Synchronize state changes to localStorage
+  // Synchronize state changes to localStorage and PostgreSQL API
+  useEffect(() => {
+    // Attempt background fetch from PostgreSQL API if server is online
+    fetchQuestionsFromApi().then(apiQuestions => {
+      if (apiQuestions && apiQuestions.length > 0) {
+        setQuestions(apiQuestions);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_USER_PROFILE, JSON.stringify(userProfile));
       syncUserProfileToAllUsers(userProfile);
+      syncUserProfileToApi(userProfile);
     } catch (e) {
       console.error('Error saving userProfile to localStorage:', e);
     }
@@ -197,6 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(questions));
+      syncQuestionToApi(questions);
     } catch (e) {
       console.error('Error saving questions to localStorage:', e);
     }
