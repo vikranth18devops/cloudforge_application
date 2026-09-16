@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: #0b0f19;
+  color: #f1f5f9;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  background: rgba(19, 27, 46, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(19, 27, 46, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(99, 102, 241, 0.15);
+}
+
+/* Glow effects */
+.glow-indigo {
+  box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.35);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.35);
+}
+
+.glow-aws {
+  box-shadow: 0 0 30px -5px rgba(255, 153, 0, 0.35);
+}
+
+/* Gradient Text with Smooth Flowing Color Animation (Left-to-Right & Right-to-Left) */
+.gradient-text {
+  background: linear-gradient(
+    90deg, 
+    #6366f1 0%, 
+    #38bdf8 20%, 
+    #a855f7 40%, 
+    #f43f5e 60%, 
+    #fbbf24 80%, 
+    #6366f1 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: colorFlowLeftRight 6s ease-in-out infinite alternate;
+}
+
+.gradient-text-aws {
+  background: linear-gradient(135deg, #ffc875 0%, #ff9900 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-k8s {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Grid background pattern */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* Terminal & Code styling */
+.terminal-window {
+  background: #0d1322;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ======================================================== */
+/* Animated Background Keyframes                            */
+/* ======================================================== */
+
+@keyframes orbFloat1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(80px, -60px) scale(1.15);
+  }
+  66% {
+    transform: translate(-50px, 40px) scale(0.9);
+  }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(-90px, 50px) scale(1.2);
+  }
+  66% {
+    transform: translate(60px, -70px) scale(0.85);
+  }
+}
+
+@keyframes orbFloat3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(110px, 80px) scale(1.1);
+  }
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translateY(1px);
+  }
+}
+
+@keyframes scanbeam {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-25px) rotate(3deg);
+    opacity: 0.6;
+  }
+}
+
+.animate-orb-1 {
+  animation: orbFloat1 22s ease-in-out infinite alternate;
+}
+
+.animate-orb-2 {
+  animation: orbFloat2 28s ease-in-out infinite alternate;
+}
+
+.animate-orb-3 {
+  animation: orbFloat3 35s ease-in-out infinite alternate;
+}
+
+.animate-grid-pulse {
+  animation: gridPulse 6s ease-in-out infinite;
+}
+
+.animate-scanbeam {
+  animation: scanbeam 8s ease-in-out infinite;
+}
+
+.animate-particle-float {
+  animation: particleFloat 12s ease-in-out infinite alternate;
+}
+
+@keyframes colorFlowLeftRight {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
