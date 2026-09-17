@@ -11,34 +11,33 @@ Details the unified multi-stage automated pipeline defined in [`.github/workflow
 
 ---
 
-## ⚙️ Automated Execution Process Flowchart
+## ⚙️ Automated Execution Process Flowchart (Parallel DAG)
 
 ```
-1. Developer pushes code commit to main branch
-   │
-   ▼
-2. GitHub Actions runs CI/CD pipeline (.github/workflows/ci.yml)
-   ├── Stage 1: Oxlint syntax check
-   ├── Stage 2: CodeQL SAST & Trivy IaC scans
-   ├── Stage 3: Build production bundle (npm run build)
-   ├── Stage 4: Verify Terraform fmt & Helm chart linting
-   └── Stage 5: Container build & OWASP ZAP DAST scan
-   │
-   ▼
-3. Stage 6 publishes container image to GCP Artifact Registry
-   gcr.io/cloudforge-project/cloudforge-backend:${{ github.sha }}
-   │
-   ▼
-4. Stage 6 updates tag in infra/helm/values.yaml and commits back to GitHub
-   │
-   ▼
-5. Stage 6 executes Terraform Infrastructure apply (infra/terraform/)
-   │
-   ▼
-6. ArgoCD Controller detects updated Helm values and auto-syncs deployment to K8s
-   │
-   ▼
-7. Prometheus & Grafana monitoring stack tracks live cluster health
+                       1. Developer pushes commit to main
+                                       │
+            ┌──────────────────────────┼──────────────────────────┐
+            ▼                          ▼                          ▼
+   [Stage 1: Linting]        [Stage 2: Security]       [Stage 4: IaC/Helm]
+   (Oxlint Syntax Check)     (CodeQL SAST & Trivy)     (Terraform & Helm Lint)
+            │                          │                          │
+            ▼                          │                          │
+   [Stage 3: App Build]                │                          │
+    (npm run build)                    │                          │
+            │                          │                          │
+            ▼                          │                          │
+   [Stage 5: Container Scan]           │                          │
+   (Docker & ZAP DAST)                 │                          │
+            │                          │                          │
+            └──────────────────────────┼──────────────────────────┘
+                                       │ (All dependencies pass)
+                                       ▼
+                     [Stage 6: GCP Production Deployment]
+                      ├── Publish Docker Image to GCP Artifact Registry
+                      ├── Update Helm Chart values.yaml (auto-commit tag)
+                      ├── Execute Terraform apply (remote GCS state)
+                      ├── Trigger ArgoCD GitOps Cluster Auto-Sync
+                      └── Verify Prometheus/Grafana Stack Health
 ```
 
 ---
