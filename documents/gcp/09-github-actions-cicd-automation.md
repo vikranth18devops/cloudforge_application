@@ -40,6 +40,10 @@ Details the unified multi-stage automated pipeline defined in [`.github/workflow
  ├── Execute Terraform apply (remote GCS state)
  ├── Trigger ArgoCD GitOps Cluster Auto-Sync
  └── Verify Prometheus/Grafana Stack Health
+ │
+ ▼ (Always executes pass or fail)
+[Stage 7: Executive Email Notification Report]
+ └── Sends HTML Executive Briefing Email to vikranth.devops18@gmail.com
 ```
 
 ---
@@ -53,3 +57,7 @@ Configure the following secrets under **GitHub Repo** -> **Settings** -> **Secre
 | `GCP_PROJECT_ID` | Google Cloud Project ID | `cloudforge-prod-12345` |
 | `GCP_SA_KEY` | Service Account JSON Key | `{ "type": "service_account", ... }` |
 | `DB_PASSWORD` | PostgreSQL Database Admin Password | `SuperSecurePassword123!` |
+| `MAIL_USERNAME` | SMTP Email Username for Executive Reports | `notifications@cloudforge.io` |
+| `MAIL_PASSWORD` | SMTP App Password | `xxxx-xxxx-xxxx-xxxx` |
+| `MAIL_SERVER` | (Optional) SMTP Server Address | `smtp.gmail.com` |
+| `MAIL_PORT` | (Optional) SMTP Server Port | `465` |

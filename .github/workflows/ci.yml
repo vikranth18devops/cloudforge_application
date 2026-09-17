@@ -362,3 +362,135 @@ jobs:
         run: |
           echo "ArgoCD Manifests: infra/argocd/"
           echo "Monitoring Stack: infra/monitoring/"
+
+  # ========================================================
+  # STAGE 7: EXECUTIVE EMAIL NOTIFICATION REPORT FOR LEADERSHIP
+  # ========================================================
+  stage-7-executive-email-notification:
+    name: "Stage 7: Executive Email Notification Report"
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - stage-1-lint
+      - stage-2a-sca-audit
+      - stage-2b-codeql-sast
+      - stage-2c-trivy-iac
+      - stage-3a-build-frontend
+      - stage-3b-build-backend
+      - stage-4a-terraform-fmt
+      - stage-4b-helm-lint
+      - stage-5a-docker-trivy
+      - stage-5b-owasp-zap-dast
+      - stage-6-gcp-deploy
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Executive Summary Report HTML
+        run: |
+          mkdir -p reports
+          cat << 'EOF' > reports/executive_summary.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+              .card { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; max-width: 750px; margin: 0 auto; overflow: hidden; }
+              .header { background: linear-gradient(135deg, #1f6feb 0%, #0969da 100%); padding: 25px; text-align: center; color: #ffffff; }
+              .header h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+              .header p { margin: 8px 0 0 0; font-size: 14px; opacity: 0.9; }
+              .content { padding: 25px; }
+              .badge { display: inline-block; padding: 6px 14px; font-weight: bold; border-radius: 20px; font-size: 14px; }
+              .success { background-color: #238636; color: #ffffff; }
+              .failure { background-color: #da3633; color: #ffffff; }
+              .section-title { font-size: 16px; font-weight: 600; color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 8px; margin-top: 25px; margin-bottom: 15px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+              th { background-color: #21262d; text-align: left; padding: 10px 12px; color: #8b949e; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #30363d; }
+              td { padding: 10px 12px; border-bottom: 1px solid #21262d; font-size: 13px; }
+              .footer { background-color: #0d1117; text-align: center; padding: 15px; font-size: 12px; color: #8b949e; border-top: 1px solid #30363d; }
+              .btn { display: inline-block; background-color: #238636; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <div class="header">
+                <h1>⚡ CloudForge DevSecOps Pipeline Audit Report</h1>
+                <p>Automated Executive Briefing for Higher Management & Technical Leadership</p>
+              </div>
+              <div class="content">
+                <p><strong>Primary Recipient:</strong> vikranth.devops18@gmail.com</p>
+                <p><strong>Overall Pipeline Status:</strong> 
+                  <span class="badge ${{ needs.stage-6-gcp-deploy.result == 'success' && 'success' || 'failure' }}">
+                    ${{ needs.stage-6-gcp-deploy.result == 'success' && '✅ PASSED & DEPLOYED' || '❌ STAGE FAILURE DETECTED' }}
+                  </span>
+                </p>
+
+                <div class="section-title">📌 Executive Overview & Commit Metadata</div>
+                <table>
+                  <tr><th>Repository</th><td>${{ github.repository }}</td></tr>
+                  <tr><th>Target Branch</th><td><code>${{ github.ref_name }}</code></td></tr>
+                  <tr><th>Trigger Event</th><td>${{ github.event_name }}</td></tr>
+                  <tr><th>Commit SHA</th><td><code>${{ github.sha }}</code></td></tr>
+                  <tr><th>Committer</th><td>${{ github.actor }}</td></tr>
+                </table>
+
+                <div class="section-title">📊 Multi-Stage Quality & DevSecOps Audit Matrix</div>
+                <table>
+                  <thead>
+                    <tr><th>Stage & Security Tool</th><th>Category</th><th>Result</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Stage 1: Oxlint Syntax Check</td><td>Code Quality</td><td>${{ needs.stage-1-lint.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 2A: npm audit (SCA)</td><td>Dependency Audit</td><td>${{ needs.stage-2a-sca-audit.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 2B: CodeQL SAST Analysis</td><td>Static Analysis</td><td>${{ needs.stage-2b-codeql-sast.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 2C: Trivy IaC Security Scan</td><td>Infrastructure SAST</td><td>${{ needs.stage-2c-trivy-iac.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 3A: Frontend React SPA Build</td><td>App Compilation</td><td>${{ needs.stage-3a-build-frontend.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 3B: Backend Express API Check</td><td>API Verification</td><td>${{ needs.stage-3b-build-backend.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 4A: Terraform Formatting</td><td>IaC Quality</td><td>${{ needs.stage-4a-terraform-fmt.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 4B: Helm Kubernetes Chart Lint</td><td>Manifest Audit</td><td>${{ needs.stage-4b-helm-lint.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 5A: Docker Container & Trivy Scan</td><td>Container Security</td><td>${{ needs.stage-5a-docker-trivy.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 5B: OWASP ZAP Baseline DAST</td><td>Dynamic Security</td><td>${{ needs.stage-5b-owasp-zap-dast.result == 'success' && '🟢 PASS' || '🔴 FAIL' }}</td></tr>
+                    <tr><td>Stage 6: GCP Production Deployment & GitOps</td><td>GCP & GitOps Sync</td><td>${{ needs.stage-6-gcp-deploy.result == 'success' && '🟢 PASS' || '🔴 SKIPPED/FAIL' }}</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">💡 Higher Management Summary</div>
+                <p>This automated executive notification confirms that all static, dynamic, container, and infrastructure security gates were evaluated in parallel against GCP enterprise standards.</p>
+
+                <center>
+                  <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" class="btn">
+                    🔍 View Detailed GitHub Actions Console Logs
+                  </a>
+                </center>
+              </div>
+              <div class="footer">
+                CloudForge Enterprise DevSecOps Automation Platform • GCP & Kubernetes GitOps Pipeline
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Send Executive Notification Email
+        uses: dawidd6/action-send-mail@v3
+        if: always() && secrets.MAIL_USERNAME != ''
+        with:
+          server_address: ${{ secrets.MAIL_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.MAIL_PORT || 465 }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "📊 [CloudForge Executive Report] Pipeline: ${{ needs.stage-6-gcp-deploy.result == 'success' && 'SUCCESS' || 'FAILURE' }} (Branch: ${{ github.ref_name }})"
+          to: vikranth.devops18@gmail.com
+          from: "CloudForge Pipeline <${{ secrets.MAIL_USERNAME }}>"
+          html_body: file://reports/executive_summary.html
+
+      - name: Log Executive Email Summary locally in GitHub Actions Console
+        if: always()
+        run: |
+          echo "=========================================================="
+          echo "EXECUTIVE EMAIL NOTIFICATION GENERATED FOR LEADERSHIP"
+          echo "Recipient: vikranth.devops18@gmail.com"
+          echo "Pipeline Status: ${{ needs.stage-6-gcp-deploy.result }}"
+          echo "=========================================================="
