@@ -21,10 +21,12 @@ Details the unified multi-stage automated pipeline defined in [`.github/workflow
    [Stage 1: Linting]        [Stage 2: Security]       [Stage 4: IaC/Helm]
    (Oxlint Syntax Check)     (CodeQL SAST & Trivy)     (Terraform & Helm Lint)
             │                          │                          │
-            ▼                          │                          │
-   [Stage 3: App Build]                │                          │
-    (npm run build)                    │                          │
-            │                          │                          │
+      ┌─────┴──────────────┐           │                          │
+      ▼                    ▼           │                          │
+[Stage 3A: Frontend]  [Stage 3B: Backend] │                       │
+ (React App Build)     (Express API Check)│                       │
+      │                    │           │                          │
+      └─────┬──────────────┘           │                          │
             ▼                          │                          │
    [Stage 5: Container Scan]           │                          │
    (Docker & ZAP DAST)                 │                          │
