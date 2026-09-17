@@ -1,35 +1,71 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Lock, Mail, ArrowRight, AlertCircle, Code } from 'lucide-react';
+import type { UserProfile } from '../../types';
+import { Lock, Mail, ArrowRight, AlertCircle, Code, Zap } from 'lucide-react';
 
 import logoImg from '../admin/logo.png';
 
 export const StudentLogin: React.FC<{ onAuthenticated: () => void }> = ({ onAuthenticated }) => {
-  const { logEvent, setUserProfile, setUserMode, setIsSignUpModalOpen } = useApp();
+  const { 
+    logEvent, 
+    setUserMode, 
+    setIsSignUpModalOpen, 
+    authenticateUserAccount, 
+    registerUserAccount,
+    getAllRegisteredUsers 
+  } = useApp();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim() && password.trim()) {
-      setError('');
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email address and password.');
+      return;
+    }
+
+    setError('');
+    const authResult = authenticateUserAccount(email, password);
+
+    if (authResult.success) {
+      setUserMode('student');
+      logEvent('signup_completed', undefined, 'direct');
+      onAuthenticated();
+    } else if (authResult.message?.includes('No registered account')) {
       const cleanEmail = email.trim().toLowerCase();
       const derivedName = cleanEmail.split('@')[0]
         .replace(/[^a-z0-9]/gi, ' ')
         .replace(/\b\w/g, c => c.toUpperCase()) || 'Candidate';
 
-      setUserProfile(prev => ({
-        ...prev,
+      const newCandidate: UserProfile = {
+        id: `usr-${Date.now()}`,
         name: derivedName,
-        email: cleanEmail
-      }));
+        email: cleanEmail,
+        password: password,
+        avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
+        role: 'DevOps Engineer',
+        experienceLevel: '1-2 Years',
+        targetCloud: 'AWS',
+        accountType: 'Free Candidate',
+        readinessPercentage: 10,
+        completedQuestionIds: [],
+        completedScenarioIds: [],
+        bookmarkedQuestionIds: [],
+        xpPoints: 100,
+        streakDays: 1,
+        badges: [{ id: 'b-welcome', title: 'Early Adopter', icon: 'Rocket', unlockedAt: new Date().toISOString().split('T')[0] }],
+        targetInterviewDate: 'Upcoming',
+        bio: 'Cloud & DevOps Candidate preparing for high-impact technical interviews.'
+      };
 
+      registerUserAccount(newCandidate);
       setUserMode('student');
       logEvent('signup_completed', undefined, 'direct');
       onAuthenticated();
     } else {
-      setError('Please enter your email and password.');
+      setError(authResult.message || 'Invalid email or password.');
     }
   };
 
@@ -37,19 +73,50 @@ export const StudentLogin: React.FC<{ onAuthenticated: () => void }> = ({ onAuth
     const socialEmail = provider === 'Google' ? 'candidate@gmail.com' : 'candidate@linkedin.com';
     const socialName = provider === 'Google' ? 'Google Candidate' : 'LinkedIn Candidate';
 
-    setUserProfile(prev => ({
-      ...prev,
-      name: socialName,
-      email: socialEmail
-    }));
+    const existingUsers = getAllRegisteredUsers();
+    let candidate = existingUsers.find(u => u.email.toLowerCase() === socialEmail);
+
+    if (!candidate) {
+      candidate = {
+        id: `usr-${Date.now()}`,
+        name: socialName,
+        email: socialEmail,
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        role: 'Cloud Engineer',
+        experienceLevel: '1-2 Years',
+        targetCloud: 'AWS',
+        accountType: 'Free Candidate',
+        readinessPercentage: 20,
+        completedQuestionIds: [],
+        completedScenarioIds: [],
+        bookmarkedQuestionIds: [],
+        xpPoints: 100,
+        streakDays: 1,
+        badges: []
+      };
+      registerUserAccount(candidate);
+    } else {
+      registerUserAccount(candidate);
+    }
 
     setUserMode('student');
     logEvent('signup_completed', undefined, provider === 'Google' ? 'google' : 'linkedin');
     onAuthenticated();
   };
 
+  const handleQuickCandidateLogin = () => {
+    setEmail('alex.mercer@clouddevops.com');
+    setPassword('devops123');
+    const authResult = authenticateUserAccount('alex.mercer@clouddevops.com', 'devops123');
+    if (authResult.success) {
+      setUserMode('student');
+      logEvent('signup_completed', undefined, 'direct');
+      onAuthenticated();
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto py-16 px-4 sm:px-6">
+    <div className="max-w-md mx-auto py-12 px-4 sm:px-6">
       <div className="glass-panel bg-slate-900/95 border-2 border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl text-center space-y-6">
         
         {/* Terminal Header */}
@@ -57,7 +124,7 @@ export const StudentLogin: React.FC<{ onAuthenticated: () => void }> = ({ onAuth
 
         <div>
           <div className="inline-block px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px] uppercase tracking-widest border border-indigo-500/30 mb-2">
-            STUDENT PLATFORM LOGIN
+            CANDIDATE PLATFORM LOGIN
           </div>
           <h2 className="text-2xl font-extrabold text-white">Log In to Start Preparing</h2>
           <p className="text-xs text-slate-400 mt-1">
@@ -65,14 +132,22 @@ export const StudentLogin: React.FC<{ onAuthenticated: () => void }> = ({ onAuth
           </p>
         </div>
 
-
-
         {error && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs text-left">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
             <span>{error}</span>
           </div>
         )}
+
+        {/* Quick One-Click Candidate Login Button */}
+        <button
+          type="button"
+          onClick={handleQuickCandidateLogin}
+          className="w-full py-2.5 px-4 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-indigo-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+        >
+          <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+          <span>⚡ One-Click Candidate Demo Login</span>
+        </button>
 
         {/* Social Buttons */}
         <div className="space-y-2">
@@ -157,3 +232,4 @@ export const StudentLogin: React.FC<{ onAuthenticated: () => void }> = ({ onAuth
     </div>
   );
 };
+

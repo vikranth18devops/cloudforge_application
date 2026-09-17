@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: cloudforge-prometheus
+    volumes:
+      - ./prometheus/prometheus-configmap.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: cloudforge-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=CloudForgeAdmin2026!
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: always

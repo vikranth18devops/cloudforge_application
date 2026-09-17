@@ -10,8 +10,21 @@ import {
 
 import logoImg from '../admin/logo.png';
 
-export const Header: React.FC<{ onNavigateTab?: (tab: string) => void; activeTab?: string }> = ({ onNavigateTab }) => {
+export const Header: React.FC<{ 
+  onNavigateTab?: (tab: string) => void; 
+  activeTab?: string;
+  onNavigateToLogin?: () => void;
+}> = ({ onNavigateTab, onNavigateToLogin }) => {
   const { userMode, setUserMode, userProfile, searchQuery, setSearchQuery, setIsSignUpModalOpen } = useApp();
+
+  const handleLoginClick = () => {
+    setIsSignUpModalOpen(false);
+    if (onNavigateToLogin) {
+      onNavigateToLogin();
+    } else {
+      setUserMode('student');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-slate-900/85 backdrop-blur-xl border-b border-slate-700/60 shadow-lg shadow-slate-950/40">
@@ -51,7 +64,7 @@ export const Header: React.FC<{ onNavigateTab?: (tab: string) => void; activeTab
           {userMode === 'public' && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsSignUpModalOpen(true)}
+                onClick={handleLoginClick}
                 className="px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:text-white transition-colors"
               >
                 Log In

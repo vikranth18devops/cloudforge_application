@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    app: grafana
+data:
+  cloudforge-dashboard.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": 1,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "HTTP Request Volume (Req/Sec)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "rate(http_requests_total[1m])",
+              "legendFormat": "{{status_code}} - {{path}}"
+            }
+          ]
+        },
+        {
+          "title": "Average Request Latency (ms)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "rate(http_request_duration_seconds_sum[1m]) / rate(http_request_duration_seconds_count[1m]) * 1000",
+              "legendFormat": "{{path}}"
+            }
+          ]
+        },
+        {
+          "title": "CPU Usage (Cores)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "process_cpu_seconds_total",
+              "legendFormat": "CPU Time"
+            }
+          ]
+        },
+        {
+          "title": "Node.js Process Memory (MB)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "nodejs_heap_size_used_bytes / 1024 / 1024",
+              "legendFormat": "Heap Memory Used"
+            }
+          ]
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["cloudforge", "kubernetes", "nodejs"],
+      "time": { "from": "now-1h", "to": "now" },
+      "title": "CloudForge DevOps Dashboard",
+      "uid": "cloudforge-overview"
+    }

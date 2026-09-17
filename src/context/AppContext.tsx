@@ -21,6 +21,7 @@ import {
 } from '../data/mockData';
 import { 
   fetchQuestionsFromApi, 
+  fetchUsersFromApi,
   syncQuestionToApi, 
   syncUserProfileToApi 
 } from '../api/client';
@@ -55,6 +56,11 @@ interface AppContextType {
   searchLogs: SearchQueryLog[];
   activeShareModalQuestion: Question | null;
   setActiveShareModalQuestion: (question: Question | null) => void;
+  allUsers: UserProfile[];
+  setAllUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
+  registerUserAccount: (profile: UserProfile) => void;
+  authenticateUserAccount: (email: string, password: string) => { success: boolean; message?: string; user?: UserProfile };
+  getAllRegisteredUsers: () => UserProfile[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -66,28 +72,15 @@ const STORAGE_KEY_QUESTIONS = 'cloud_interview_questions';
 const STORAGE_KEY_MOCK_SESSIONS = 'cloud_interview_mock_sessions';
 const STORAGE_KEY_ALL_USERS = 'cloud_interview_all_users';
 
-const syncUserProfileToAllUsers = (profile: UserProfile) => {
-  if (!profile || !profile.email) return;
+const getAllRegisteredUsers = (): UserProfile[] => {
   try {
     const savedAll = localStorage.getItem(STORAGE_KEY_ALL_USERS);
-    let allUsers: UserProfile[] = savedAll ? JSON.parse(savedAll) : MOCK_ALL_USERS;
-    
-    // Filter out obsolete dummy mock users
+    let allUsers: UserProfile[] = savedAll ? JSON.parse(savedAll) : [...MOCK_ALL_USERS];
     allUsers = allUsers.filter(u => u.id !== 'usr-102' && u.id !== 'usr-103' && u.id !== 'usr-104' && u.id !== 'usr-105');
-
-    const idx = allUsers.findIndex(u => 
-      u.id === profile.id || u.email.toLowerCase() === profile.email.toLowerCase()
-    );
-
-    if (idx >= 0) {
-      allUsers[idx] = { ...allUsers[idx], ...profile };
-    } else {
-      allUsers.push(profile);
-    }
-
-    localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(allUsers));
+    return allUsers;
   } catch (e) {
-    console.error('Error syncing candidate userProfile to allUsers:', e);
+    console.error('Error loading all registered users:', e);
+    return [...MOCK_ALL_USERS];
   }
 };
 
@@ -168,6 +161,7 @@ const loadSavedMockSessions = (): MockInterviewSession[] => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userMode, setUserMode] = useState<UserMode>(loadSavedUserMode);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadSavedProfile);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(getAllRegisteredUsers);
   const [questions, setQuestions] = useState<Question[]>(loadSavedQuestions);
   const [categories] = useState<Category[]>(MOCK_CATEGORIES);
   const [scenarios] = useState<IncidentScenario[]>(MOCK_SCENARIOS);
@@ -189,17 +183,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setQuestions(apiQuestions);
       }
     });
+
+    fetchUsersFromApi().then(apiUsers => {
+      if (apiUsers && apiUsers.length > 0) {
+        setAllUsers(prev => {
+          const userMap = new Map(prev.map(u => [u.email.toLowerCase(), u]));
+          apiUsers.forEach(u => {
+            const existing = userMap.get(u.email.toLowerCase());
+            userMap.set(u.email.toLowerCase(), { ...existing, ...u, password: u.password || existing?.password });
+          });
+          return Array.from(userMap.values());
+        });
+      }
+    });
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_USER_PROFILE, JSON.stringify(userProfile));
-      syncUserProfileToAllUsers(userProfile);
+      if (userProfile && userProfile.email) {
+        setAllUsers(prev => {
+          const idx = prev.findIndex(u => 
+            u.id === userProfile.id || u.email.toLowerCase() === userProfile.email.toLowerCase()
+          );
+          let updated: UserProfile[];
+          if (idx >= 0) {
+            updated = [...prev];
+            updated[idx] = { 
+              ...updated[idx], 
+              ...userProfile, 
+              password: userProfile.password || updated[idx].password 
+            };
+          } else {
+            updated = [userProfile, ...prev];
+          }
+          return updated;
+        });
+      }
       syncUserProfileToApi(userProfile);
     } catch (e) {
       console.error('Error saving userProfile to localStorage:', e);
     }
   }, [userProfile]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(allUsers));
+    } catch (e) {
+      console.error('Error saving allUsers to localStorage:', e);
+    }
+  }, [allUsers]);
 
   useEffect(() => {
     try {
@@ -305,6 +338,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const registerUserAccount = (profile: UserProfile) => {
+    setUserProfile(profile);
+    setAllUsers(prev => {
+      const filtered = prev.filter(u => u.email.toLowerCase() !== profile.email.toLowerCase());
+      const updated = [profile, ...filtered];
+      try {
+        localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving allUsers:', e);
+      }
+      return updated;
+    });
+    syncUserProfileToApi(profile);
+  };
+
+  const authenticateUserAccount = (email: string, password: string): { success: boolean; message?: string; user?: UserProfile } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const matchedUser = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (!matchedUser) {
+      return {
+        success: false,
+        message: 'No registered account found with this email. Please create an account.'
+      };
+    }
+
+    if (matchedUser.password && matchedUser.password !== password) {
+      return {
+        success: false,
+        message: 'Incorrect password. Please try again.'
+      };
+    }
+
+    const updatedUser: UserProfile = {
+      ...matchedUser,
+      password: matchedUser.password || password
+    };
+
+    setUserProfile(updatedUser);
+    setAllUsers(prev => {
+      const idx = prev.findIndex(u => u.id === updatedUser.id || u.email.toLowerCase() === updatedUser.email.toLowerCase());
+      let updated: UserProfile[];
+      if (idx >= 0) {
+        updated = [...prev];
+        updated[idx] = updatedUser;
+      } else {
+        updated = [updatedUser, ...prev];
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving allUsers:', e);
+      }
+      return updated;
+    });
+    syncUserProfileToApi(updatedUser);
+
+    return {
+      success: true,
+      user: updatedUser
+    };
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -312,6 +408,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUserMode,
         userProfile,
         setUserProfile,
+        allUsers,
+        setAllUsers,
         questions,
         setQuestions,
         categories,
@@ -336,7 +434,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logEvent,
         searchLogs,
         activeShareModalQuestion,
-        setActiveShareModalQuestion
+        setActiveShareModalQuestion,
+        registerUserAccount,
+        authenticateUserAccount,
+        getAllRegisteredUsers
       }}
     >
       {children}

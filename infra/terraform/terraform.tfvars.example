@@ -1,0 +1,10 @@
+# GCP Project & Region Settings
+gcp_project_id = "your-gcp-project-id"
+gcp_region     = "us-central1"
+environment    = "production"
+
+# Database Configuration
+db_password    = "SuperSecretPostgresPass123!"
+
+# Optional: Set custom Docker image tag if already built & pushed
+# container_image = "us-central1-docker.pkg.dev/your-gcp-project-id/cloudforge-app-repo/backend:v1.0.0"

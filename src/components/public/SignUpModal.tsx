@@ -1,19 +1,78 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Mail, Lock, ArrowRight, Code } from 'lucide-react';
+import { X, Mail, Lock, ArrowRight, Code, AlertCircle, User } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import type { UserProfile } from '../../types';
 
 import logoImg from '../admin/logo.png';
 
-export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuthenticated }) => {
-  const { isSignUpModalOpen, setIsSignUpModalOpen, setUserMode, setIsOnboardingCompleted, setUserProfile, logEvent } = useApp();
+export const SignUpModal: React.FC<{ onAuthenticated?: () => void; onNavigateToLogin?: () => void }> = ({ onAuthenticated, onNavigateToLogin }) => {
+  const { 
+    isSignUpModalOpen, 
+    setIsSignUpModalOpen, 
+    setUserMode, 
+    setIsOnboardingCompleted, 
+    registerUserAccount, 
+    getAllRegisteredUsers,
+    logEvent 
+  } = useApp();
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   if (!isSignUpModalOpen) return null;
 
-  const handleSignUpSuccess = (providerName: string) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+
+    if (!cleanEmail || !cleanName || !password) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters long.');
+      return;
+    }
+
+    const existingUsers = getAllRegisteredUsers();
+    const isAlreadyRegistered = existingUsers.some(u => u.email.toLowerCase() === cleanEmail);
+
+    if (isAlreadyRegistered) {
+      setError('An account with this email address already exists. Please log in instead.');
+      return;
+    }
+
+    // Create new candidate profile with stored password
+    const newCandidateProfile: UserProfile = {
+      id: `usr-${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      password: password,
+      avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
+      role: 'DevOps Engineer',
+      experienceLevel: '1-2 Years',
+      targetCloud: 'AWS',
+      accountType: 'Free Candidate',
+      readinessPercentage: 10,
+      completedQuestionIds: [],
+      completedScenarioIds: [],
+      bookmarkedQuestionIds: [],
+      xpPoints: 100,
+      streakDays: 1,
+      badges: [{ id: 'b-welcome', title: 'Early Adopter', icon: 'Rocket', unlockedAt: new Date().toISOString().split('T')[0] }],
+      targetInterviewDate: 'Upcoming',
+      bio: 'Cloud & DevOps Candidate preparing for high-impact technical interviews.'
+    };
+
+    registerUserAccount(newCandidateProfile);
+
     // Trigger celebratory confetti
     confetti({
       particleCount: 80,
@@ -21,20 +80,62 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
       origin: { y: 0.6 }
     });
 
-    const userEmail = email || (providerName === 'Google' ? 'alex.mercer@clouddevops.com' : providerName === 'GitHub' ? 'alex.mercer@github.com' : 'alex.mercer@clouddevops.com');
-    const userName = name || (providerName === 'Google' ? 'Google Candidate' : providerName === 'GitHub' ? 'GitHub Candidate' : 'Alex Mercer');
-
-    setUserProfile(prev => ({
-      ...prev,
-      name: userName,
-      email: userEmail
-    }));
-
-    logEvent('signup_completed', undefined, providerName === 'Google' ? 'google' : providerName === 'GitHub' ? 'linkedin' : 'direct');
+    logEvent('signup_completed', undefined, 'direct');
     setIsSignUpModalOpen(false);
     setUserMode('student');
     setIsOnboardingCompleted(false);
     onAuthenticated?.();
+  };
+
+  const handleSocialSignUp = (providerName: string) => {
+    setError('');
+
+    const socialEmail = providerName === 'Google' ? 'google.candidate@clouddevops.com' : 'github.candidate@clouddevops.com';
+    const socialName = providerName === 'Google' ? 'Google Candidate' : 'GitHub Candidate';
+
+    const existingUsers = getAllRegisteredUsers();
+    let candidate = existingUsers.find(u => u.email.toLowerCase() === socialEmail);
+
+    if (!candidate) {
+      candidate = {
+        id: `usr-${Date.now()}`,
+        name: socialName,
+        email: socialEmail,
+        avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200`,
+        role: 'Cloud Engineer',
+        experienceLevel: '1-2 Years',
+        targetCloud: 'AWS',
+        accountType: 'Free Candidate',
+        readinessPercentage: 15,
+        completedQuestionIds: [],
+        completedScenarioIds: [],
+        bookmarkedQuestionIds: [],
+        xpPoints: 100,
+        streakDays: 1,
+        badges: []
+      };
+      registerUserAccount(candidate);
+    } else {
+      registerUserAccount(candidate);
+    }
+
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    logEvent('signup_completed', undefined, providerName === 'Google' ? 'google' : 'direct');
+    setIsSignUpModalOpen(false);
+    setUserMode('student');
+    setIsOnboardingCompleted(false);
+    onAuthenticated?.();
+  };
+
+  const handleSwitchToLogin = () => {
+    setIsSignUpModalOpen(false);
+    setUserMode('student');
+    onNavigateToLogin?.();
   };
 
   return (
@@ -53,17 +154,25 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
         <div className="text-center mb-6">
           <img src={logoImg} alt="CloudForge Logo" className="w-12 h-12 mx-auto mb-3 rounded-2xl object-cover shadow-glow-indigo border border-indigo-500/30" />
           <h2 className="text-2xl font-extrabold text-white tracking-tight">
-            🚀 Start Your Preparation
+            🚀 Create Candidate Account
           </h2>
           <p className="text-xs text-slate-300 mt-1">
-            Create your free account and unlock the complete interview library.
+            Register your account to save your interview preparation progress and roadmap.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs text-left">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Social Authentication Buttons */}
         <div className="space-y-3 mb-6">
           <button
-            onClick={() => handleSignUpSuccess('Google')}
+            type="button"
+            onClick={() => handleSocialSignUp('Google')}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -76,7 +185,8 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
           </button>
 
           <button
-            onClick={() => handleSignUpSuccess('GitHub')}
+            type="button"
+            onClick={() => handleSocialSignUp('GitHub')}
             className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all"
           >
             <Code className="w-4 h-4 text-cyan-400" />
@@ -92,11 +202,11 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
         </div>
 
         {/* Form Inputs */}
-        <form onSubmit={(e) => { e.preventDefault(); handleSignUpSuccess('Email'); }} className="space-y-4">
+        <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 required
@@ -149,7 +259,7 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
 
         <p className="text-[11px] text-center text-slate-400 mt-6">
           Already have an account?{' '}
-          <span onClick={() => handleSignUpSuccess('Login')} className="text-indigo-400 font-semibold cursor-pointer hover:underline">
+          <span onClick={handleSwitchToLogin} className="text-indigo-400 font-semibold cursor-pointer hover:underline">
             Log In
           </span>
         </p>
@@ -158,3 +268,4 @@ export const SignUpModal: React.FC<{ onAuthenticated?: () => void }> = ({ onAuth
     </div>
   );
 };
+

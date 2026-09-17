@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cloudforge-project
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: CloudForge Multi-Environment GitOps Project
+  sourceRepos:
+    - 'https://github.com/vikranth18devops/cloudforge_application.git'
+  destinations:
+    - namespace: 'cloudforge-*'
+      server: 'https://kubernetes.default.svc'
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'networking.k8s.io'
+      kind: IngressClass
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: developer
+      description: Read-only access for developers
+      policies:
+        - p, proj:cloudforge-project:developer, applications, get, cloudforge-project/*, allow
+      groups:
+        - dev-team

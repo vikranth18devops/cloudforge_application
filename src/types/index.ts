@@ -133,6 +133,7 @@ export interface UserProfile {
   targetSalary?: string;
   targetCompanies?: string[];
   accountType?: 'Free Candidate' | 'Pro Member' | 'Enterprise';
+  password?: string;
   readinessPercentage: number;
   completedQuestionIds: string[];
   bookmarkedQuestionIds: string[];

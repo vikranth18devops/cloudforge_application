@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cloudforge-appset
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            branch: main
+          - env: staging
+            branch: main
+          - env: prod
+            branch: main
+  template:
+    metadata:
+      name: 'cloudforge-{{env}}'
+      labels:
+        environment: '{{env}}'
+    spec:
+      project: cloudforge-project
+      source:
+        repoURL: 'https://github.com/vikranth18devops/cloudforge_application.git'
+        targetRevision: '{{branch}}'
+        path: infra/helm
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: 'cloudforge-{{env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

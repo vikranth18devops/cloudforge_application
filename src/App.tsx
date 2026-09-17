@@ -146,6 +146,10 @@ const MainContent: React.FC = () => {
           setActiveTab(tab);
           setSelectedQuestion(null);
         }} 
+        onNavigateToLogin={() => {
+          setUserMode('student');
+          setIsStudentAuthenticated(false);
+        }}
       />
 
       <main className="flex-grow">
@@ -334,7 +338,10 @@ const MainContent: React.FC = () => {
         onClose={() => setPreviewQuestion(null)} 
       />
 
-      <SignUpModal onAuthenticated={() => setIsStudentAuthenticated(true)} />
+      <SignUpModal 
+        onAuthenticated={() => setIsStudentAuthenticated(true)} 
+        onNavigateToLogin={() => setIsStudentAuthenticated(false)}
+      />
 
       <SocialShareGeneratorModal 
         question={activeShareModalQuestion} 

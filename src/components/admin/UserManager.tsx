@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { UserProfile } from '../../types';
-import { MOCK_ALL_USERS } from '../../data/mockData';
+import { useApp } from '../../context/AppContext';
 import { 
   Users, 
   Search, 
@@ -16,42 +16,14 @@ import {
   Trash2
 } from 'lucide-react';
 
-const STORAGE_KEY_ALL_USERS = 'cloud_interview_all_users';
-
-const loadSavedAllUsers = (): UserProfile[] => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_ALL_USERS);
-    if (saved) {
-      const parsed: UserProfile[] = JSON.parse(saved);
-      const filtered = parsed.filter(u => u.id !== 'usr-102' && u.id !== 'usr-103' && u.id !== 'usr-104' && u.id !== 'usr-105');
-      if (filtered.length !== parsed.length) {
-        localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(filtered));
-      }
-      return filtered;
-    }
-  } catch (e) {
-    console.error('Error reading all users from localStorage:', e);
-  }
-  return MOCK_ALL_USERS;
-};
-
 export const UserManager: React.FC = () => {
-  const [usersList, setUsersList] = useState<UserProfile[]>(loadSavedAllUsers);
+  const { allUsers, setAllUsers } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('All');
   const [inspectUser, setInspectUser] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    setUsersList(loadSavedAllUsers());
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_ALL_USERS, JSON.stringify(usersList));
-    } catch (e) {
-      console.error('Error saving all users to localStorage:', e);
-    }
-  }, [usersList]);
+  const usersList = allUsers || [];
+  const setUsersList = setAllUsers;
 
   const handleDeleteUser = (userId: string) => {
     setUsersList(prev => prev.filter(u => u.id !== userId));
