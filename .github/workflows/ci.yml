@@ -485,7 +485,8 @@ jobs:
 
       - name: Send Executive Notification Email
         uses: dawidd6/action-send-mail@v3
-        if: always() && secrets.MAIL_USERNAME != ''
+        if: always()
+        continue-on-error: true
         with:
           server_address: ${{ secrets.MAIL_SERVER || 'smtp.gmail.com' }}
           server_port: ${{ secrets.MAIL_PORT || 465 }}
@@ -493,7 +494,7 @@ jobs:
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: "📊 [CloudForge Executive Report] Pipeline: ${{ needs.stage-6-gcp-deploy.result == 'success' && 'SUCCESS' || 'FAILURE' }} (Branch: ${{ github.ref_name }})"
           to: vikranth.devops18@gmail.com
-          from: "CloudForge Pipeline <${{ secrets.MAIL_USERNAME }}>"
+          from: "CloudForge Pipeline <${{ secrets.MAIL_USERNAME || 'noreply@cloudforge.io' }}>"
           html_body: file://reports/executive_summary.html
 
       - name: Log Executive Email Summary locally in GitHub Actions Console
