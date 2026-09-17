@@ -471,7 +471,17 @@ jobs:
             </div>
           </body>
           </html>
-          EOF
+      - name: Upload Executive Report Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: executive-devsecops-report
+          path: reports/executive_summary.html
+
+      - name: Render Executive Report in GitHub Step Summary
+        if: always()
+        run: |
+          cat reports/executive_summary.html >> $GITHUB_STEP_SUMMARY
 
       - name: Send Executive Notification Email
         uses: dawidd6/action-send-mail@v3
