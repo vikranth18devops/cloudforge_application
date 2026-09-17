@@ -11,35 +11,35 @@ Details the unified multi-stage automated pipeline defined in [`.github/workflow
 
 ---
 
-## ⚙️ Automated Execution Process Flowchart (Parallel DAG)
+## ⚙️ Automated Execution Process Flowchart (Modular Parallel DAG)
 
 ```
-                       1. Developer pushes commit to main
-                                       │
-            ┌──────────────────────────┼──────────────────────────┐
-            ▼                          ▼                          ▼
-   [Stage 1: Linting]        [Stage 2: Security]       [Stage 4: IaC/Helm]
-   (Oxlint Syntax Check)     (CodeQL SAST & Trivy)     (Terraform & Helm Lint)
-            │                          │                          │
-      ┌─────┴──────────────┐           │                          │
-      ▼                    ▼           │                          │
-[Stage 3A: Frontend]  [Stage 3B: Backend] │                       │
- (React App Build)     (Express API Check)│                       │
-      │                    │           │                          │
-      └─────┬──────────────┘           │                          │
-            ▼                          │                          │
-   [Stage 5: Container Scan]           │                          │
-   (Docker & ZAP DAST)                 │                          │
-            │                          │                          │
-            └──────────────────────────┼──────────────────────────┘
-                                       │ (All dependencies pass)
-                                       ▼
-                     [Stage 6: GCP Production Deployment]
-                      ├── Publish Docker Image to GCP Artifact Registry
-                      ├── Update Helm Chart values.yaml (auto-commit tag)
-                      ├── Execute Terraform apply (remote GCS state)
-                      ├── Trigger ArgoCD GitOps Cluster Auto-Sync
-                      └── Verify Prometheus/Grafana Stack Health
+                                  1. Developer pushes commit to main
+                                                  │
+ ┌───────────────────┬───────────────────┬────────┴──────────┬───────────────────┬───────────────────┐
+ ▼                   ▼                   ▼                   ▼                   ▼                   ▼
+[Stage 1: Lint]  [Stage 2A: SCA]    [Stage 2B: SAST]   [Stage 2C: Trivy]   [Stage 4A: TF Fmt]  [Stage 4B: Helm]
+ (Oxlint Check)   (npm audit)        (CodeQL Analysis)   (Trivy IaC Scan)    (Terraform Format)  (Helm Chart Lint)
+     │               │                   │                   │                   │                   │
+ ┌───┴──────────┐    │                   │                   │                   │                   │
+ ▼              ▼    │                   │                   │                   │                   │
+[3A: Frontend] [3B: Backend]             │                   │                   │                   │
+(React Build)  (API Verification)        │                   │                   │                   │
+     │              │                    │                   │                   │                   │
+ ┌───┴──────────────┴───┐                │                   │                   │                   │
+ ▼                      ▼                │                   │                   │                   │
+[5A: Docker Trivy]   [5B: ZAP DAST]      │                   │                   │                   │
+(Container Scan)     (Dynamic DAST)      │                   │                   │                   │
+     │                      │            │                   │                   │                   │
+ ┌───┴──────────────────────┴────────────┴───────────────────┴───────────────────┴───────────────────┘
+ │ (All security, build, & validation jobs pass)
+ ▼
+[Stage 6: GCP Production Deployment & GitOps]
+ ├── Publish Docker Image to GCP Artifact Registry
+ ├── Update Helm Chart values.yaml (auto-commit tag)
+ ├── Execute Terraform apply (remote GCS state)
+ ├── Trigger ArgoCD GitOps Cluster Auto-Sync
+ └── Verify Prometheus/Grafana Stack Health
 ```
 
 ---

@@ -44,10 +44,10 @@ jobs:
         run: npx oxlint
 
   # ========================================================
-  # STAGE 2: SAST & SECURITY AUDITING (Runs in parallel at start)
+  # STAGE 2A: SOFTWARE COMPOSITION ANALYSIS (SCA)
   # ========================================================
-  stage-2-security-scans:
-    name: "Stage 2: SAST & Security Auditing"
+  stage-2a-sca-audit:
+    name: "Stage 2A: Dependency Security Audit (SCA)"
     runs-on: ubuntu-latest
 
     steps:
@@ -63,6 +63,23 @@ jobs:
       - name: Dependency Security Audit (SCA)
         run: npm audit --audit-level=high || true
 
+  # ========================================================
+  # STAGE 2B: CODEQL SAST SECURITY ANALYSIS
+  # ========================================================
+  stage-2b-codeql-sast:
+    name: "Stage 2B: CodeQL SAST Analysis"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
       - name: Initialize CodeQL (SAST)
         uses: github/codeql-action/init@v3
         with:
@@ -72,6 +89,17 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:javascript-typescript'
+
+  # ========================================================
+  # STAGE 2C: TRIVY TERRAFORM IAC SECURITY SCAN
+  # ========================================================
+  stage-2c-trivy-iac:
+    name: "Stage 2C: Trivy IaC Security Scan"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Trivy IaC Security Scan (Terraform)
         uses: aquasecurity/trivy-action@master
@@ -140,10 +168,10 @@ jobs:
           node -c server/db/pool.js
 
   # ========================================================
-  # STAGE 4: INFRASTRUCTURE & HELM VALIDATION (Runs in parallel at start)
+  # STAGE 4A: TERRAFORM INFRASTRUCTURE FORMAT VALIDATION
   # ========================================================
-  stage-4-terraform-validate:
-    name: "Stage 4: Infrastructure & Helm Validation"
+  stage-4a-terraform-fmt:
+    name: "Stage 4A: Terraform Format Validation"
     runs-on: ubuntu-latest
 
     steps:
@@ -158,6 +186,17 @@ jobs:
       - name: Verify Terraform Formatting
         run: terraform fmt -check -recursive infra/terraform/
 
+  # ========================================================
+  # STAGE 4B: KUBERNETES HELM CHART LINTING
+  # ========================================================
+  stage-4b-helm-lint:
+    name: "Stage 4B: Helm Chart Linting"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Helm CLI
         uses: azure/setup-helm@v4
         with:
@@ -167,10 +206,10 @@ jobs:
         run: helm lint ./infra/helm
 
   # ========================================================
-  # STAGE 5: DOCKER CONTAINER BUILD & DAST SCANNING (Depends on Stage 3A & 3B)
+  # STAGE 5A: DOCKER CONTAINER BUILD & TRIVY CONTAINER VULNERABILITY SCAN
   # ========================================================
-  stage-5-container-build-scan:
-    name: "Stage 5: Container Build & DAST Scan"
+  stage-5a-docker-trivy:
+    name: "Stage 5A: Docker Container & Trivy Scan"
     runs-on: ubuntu-latest
     needs: [stage-3a-build-frontend, stage-3b-build-backend]
 
@@ -196,6 +235,18 @@ jobs:
         with:
           sarif_file: 'trivy-container-results.sarif'
           category: 'trivy-container'
+
+  # ========================================================
+  # STAGE 5B: OWASP ZAP BASELINE DAST DYNAMIC SECURITY SCAN
+  # ========================================================
+  stage-5b-owasp-zap-dast:
+    name: "Stage 5B: OWASP ZAP DAST Security Scan"
+    runs-on: ubuntu-latest
+    needs: [stage-3a-build-frontend, stage-3b-build-backend]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 20.x for DAST
         uses: actions/setup-node@v4
@@ -224,7 +275,14 @@ jobs:
   stage-6-gcp-deploy:
     name: "Stage 6: GCP Container Publish, Helm Tag Update, Terraform & ArgoCD GitOps"
     runs-on: ubuntu-latest
-    needs: [stage-2-security-scans, stage-4-terraform-validate, stage-5-container-build-scan]
+    needs:
+      - stage-2a-sca-audit
+      - stage-2b-codeql-sast
+      - stage-2c-trivy-iac
+      - stage-4a-terraform-fmt
+      - stage-4b-helm-lint
+      - stage-5a-docker-trivy
+      - stage-5b-owasp-zap-dast
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
@@ -304,4 +362,3 @@ jobs:
         run: |
           echo "ArgoCD Manifests: infra/argocd/"
           echo "Monitoring Stack: infra/monitoring/"
-
