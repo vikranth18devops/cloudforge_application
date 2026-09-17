@@ -27,11 +27,11 @@ Details the unified multi-stage automated pipeline defined in [`.github/workflow
 (React Build)  (API Verification)        │                   │                   │                   │
      │              │                    │                   │                   │                   │
  ┌───┴──────────────┴───┐                │                   │                   │                   │
- ▼                      ▼                │                   │                   │                   │
-[5A: Docker Trivy]   [5B: ZAP DAST]      │                   │                   │                   │
-(Container Scan)     (Dynamic DAST)      │                   │                   │                   │
-     │                      │            │                   │                   │                   │
- ┌───┴──────────────────────┴────────────┴───────────────────┴───────────────────┴───────────────────┘
+ ▼                      │                │                   │                   │                   │
+[Stage 5: Docker Trivy] │                │                   │                   │                   │
+(Container & Trivy Scan)│                │                   │                   │                   │
+     │                  │                │                   │                   │                   │
+ ┌───┴──────────────────┴────────────────┴───────────────────┴───────────────────┴───────────────────┘
  │ (All security, build, & validation jobs pass)
  ▼
 [Stage 6: GCP Production Deployment & GitOps]
